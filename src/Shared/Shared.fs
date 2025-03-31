@@ -1,19 +1,15 @@
 namespace Shared
 
-open System
+type LetterResult =
+    | NotInWord
+    | InWrongPosition
+    | CorrectPosition
 
-type Todo = { Id: Guid; Description: string }
-
-module Todo =
-    let isValid (description: string) =
-        String.IsNullOrWhiteSpace description |> not
-
-    let create (description: string) = {
-        Id = Guid.NewGuid()
-        Description = description
-    }
-
-type ITodosApi = {
-    getTodos: unit -> Async<Todo list>
-    addTodo: Todo -> Async<Todo list>
+type Letter = {
+    character: char
+    result: LetterResult
 }
+
+type Guess = { letters: Letter list }
+
+type IWordleApi = { getWord: unit -> Async<string> }
