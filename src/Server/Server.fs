@@ -3,10 +3,16 @@ module Server
 open SAFE
 open Saturn
 open Shared
+open System.IO
 
 
 let wordleApi ctx = {
-    getWord = fun () -> async { return "Hello" }
+    getWord = fun () -> async {
+        let! words = File.ReadAllLinesAsync "wordle-La.txt" |> Async.AwaitTask
+        let random = System.Random()
+        let word = words.[random.Next(0, words.Length)]
+        return {|word=word|}
+    }
 }
 
 let webApp = Api.make wordleApi

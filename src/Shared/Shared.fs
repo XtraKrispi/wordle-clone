@@ -12,4 +12,4 @@ type Letter = {
 
 type Guess = { letters: Letter list }
 
-type IWordleApi = { getWord: unit -> Async<string> }
+type IWordleApi = { getWord: unit -> Async<{|word: string|}> }
