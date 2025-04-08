@@ -11,7 +11,7 @@ let wordleApi ctx = {
         let! words = File.ReadAllLinesAsync "wordle-La.txt" |> Async.AwaitTask
         let random = System.Random()
         let word = words.[random.Next(0, words.Length)]
-        return {|word=word|}
+        return word
     }
 }
 
