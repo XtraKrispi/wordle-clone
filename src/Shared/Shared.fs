@@ -33,8 +33,8 @@ module Logic =
         })
 
     let mapCharsToIndices (word: string) : Map<char, Set<int>> =
-        let updateMap (idx: int) (existingItem: Set<int> option) : Set<int> =
-            existingItem
+        let updateMap (idx: int) (existingValue: Set<int> option) : Set<int> =
+            existingValue
             |> Option.map (Set.add idx)
             |> Option.defaultValue (Set.singleton idx)
 
