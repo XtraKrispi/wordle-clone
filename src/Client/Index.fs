@@ -44,7 +44,7 @@ let viewGuess word guess =
 
             Html.div [
                 prop.className (
-                    "w-20 h-20 border border-black flex items-center justify-center font-extrabold text-4xl text-white uppercase "
+                    "w-20 h-20 flex items-center justify-center font-extrabold text-4xl text-white uppercase "
                     + className
                 )
                 prop.text (string l.character)
@@ -57,7 +57,7 @@ let viewGrid word guesses =
 
     let emptyBoxes =
         seq { 1..5 }
-        |> Seq.map (fun _ -> Html.div [ prop.className "w-20 h-20 border border-black" ])
+        |> Seq.map (fun _ -> Html.div [ prop.className "w-20 h-20 border-2 border-gray-400" ])
 
     // Pad the guess list with None values to ensure it has exactly numGuesses elements
     let combinedList =
