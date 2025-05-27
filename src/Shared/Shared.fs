@@ -36,10 +36,6 @@ module Logic =
         let remainingActual = Set.difference actual inCorrectPosition |> Set.toList
         let remainingGuess = Set.difference guess inCorrectPosition |> Set.toList
 
-        printfn "Remaining Actual: %A" remainingActual
-        printfn "Remaining Guess: %A" remainingGuess
-        printfn "----------------"
-
         let combinedList =
             List.map Some remainingActual
             @ List.replicate (max (List.length remainingGuess - List.length remainingActual) 0) None
