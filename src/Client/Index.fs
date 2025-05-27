@@ -17,7 +17,12 @@ type Msg =
 let todosApi = Api.makeProxy<IWordleApi> ()
 
 let init () : Model * Cmd<Msg> =
-    { word = Loading None; guesses = [] }, Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
+    {
+        word = Loaded(Ok "hello")
+        guesses = [ "apple"; "helno"; "train" ]
+    },
+    // Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
+    Cmd.none
 
 let update msg model =
     match msg with
