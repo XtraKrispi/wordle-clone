@@ -76,10 +76,10 @@ type KeyType =
     | BackspaceKey
 
 let viewKeyboard =
-    let createButton (s: KeyType) =
+    let createButton (k: KeyType) =
         let baseClass = "h-20 bg-gray-400 rounded-md text-white font-bold uppercase"
 
-        match s with
+        match k with
         | LetterKey c -> Html.button [ prop.className $"w-16 text-2xl {baseClass}"; prop.text (string c) ]
         | EnterKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "Enter" ]
         | BackspaceKey ->
@@ -123,8 +123,8 @@ let viewKeyboard =
                 prop.className "flex justify-center gap-2"
                 prop.children [
                     createButton EnterKey
-                    for s in thirdRow do
-                        createButton (LetterKey s)
+                    for c in thirdRow do
+                        createButton (LetterKey c)
                     createButton BackspaceKey
                 ]
             ]
