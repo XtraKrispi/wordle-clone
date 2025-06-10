@@ -139,7 +139,7 @@ let view model dispatch =
             prop.className "w-screen h-screen flex items-center justify-center"
             prop.children [
                 Html.div [
-                    prop.className "flex flex-col items-center gap-8"
+                    prop.className "flex flex-col items-center gap-48"
                     prop.children [ viewGrid word model.guesses; viewKeyboard ]
                 ]
             ]
