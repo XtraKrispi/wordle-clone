@@ -82,8 +82,27 @@ let viewKeyboard =
         match s with
         | LetterKey c -> Html.button [ prop.className $"w-16 text-2xl {baseClass}"; prop.text (string c) ]
         | EnterKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "Enter" ]
-        | BackspaceKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "🔙" ] //  TODO: Use a proper icon
-
+        | BackspaceKey ->
+            Html.button [
+                prop.className $"w-24 text-xl {baseClass} flex justify-center items-center"
+                prop.children [
+                    Svg.svg [
+                        svg.viewBox (0, 0, 24, 24)
+                        svg.fill "none"
+                        svg.strokeWidth 1.5
+                        svg.stroke "currentColor"
+                        svg.className "size-10"
+                        svg.children [
+                            Svg.path [
+                                svg.strokeLineCap "round"
+                                svg.strokeLineJoin "round"
+                                svg.d
+                                    "M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12 12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33Z"
+                            ]
+                        ]
+                    ]
+                ]
+            ]
 
     let firstRow = "qwertyuiop"
     let secondRow = "asdfghjkl"
@@ -120,7 +139,7 @@ let view model dispatch =
             prop.className "w-screen h-screen flex items-center justify-center"
             prop.children [
                 Html.div [
-                    prop.className "flex flex-col items-center gap-2"
+                    prop.className "flex flex-col items-center gap-8"
                     prop.children [ viewGrid word model.guesses; viewKeyboard ]
                 ]
             ]
