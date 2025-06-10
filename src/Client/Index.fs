@@ -70,21 +70,20 @@ let viewGrid word guesses =
 
     Html.div [ prop.className "flex flex-col gap-2"; prop.children combinedList ]
 
-type KeyType = LetterKey of char | EnterKey | BackspaceKey
+type KeyType =
+    | LetterKey of char
+    | EnterKey
+    | BackspaceKey
 
 let viewKeyboard =
     let createButton (s: KeyType) =
         let baseClass = "h-20 bg-gray-400 rounded-md text-white font-bold uppercase"
-        match s with
-        | LetterKey c -> Html.button [
-                                    prop.className $"w-16 text-2xl {baseClass}" 
-                                    prop.text (string c)
-                                ]
 
-        Html.button [
-            prop.className "w-16 h-20 bg-gray-400 rounded-md text-white text-2xl font-bold uppercase"
-            prop.text s
-        ]
+        match s with
+        | LetterKey c -> Html.button [ prop.className $"w-16 text-2xl {baseClass}"; prop.text (string c) ]
+        | EnterKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "Enter" ]
+        | BackspaceKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "🔙" ] //  TODO: Use a proper icon
+
 
     let firstRow = "qwertyuiop"
     let secondRow = "asdfghjkl"
@@ -95,19 +94,19 @@ let viewKeyboard =
         prop.children [
             Html.div [
                 prop.className "flex justify-center gap-2"
-                firstRow |> Seq.map (string >> createButton) |> prop.children
+                firstRow |> Seq.map (LetterKey >> createButton) |> prop.children
             ]
             Html.div [
                 prop.className "flex justify-center gap-2"
-                secondRow |> Seq.map (string >> createButton) |> prop.children
+                secondRow |> Seq.map (LetterKey >> createButton) |> prop.children
             ]
             Html.div [
                 prop.className "flex justify-center gap-2"
                 prop.children [
-                    createButton "Enter"
+                    createButton EnterKey
                     for s in thirdRow do
-                        createButton (string s)
-                    createButton "Back"
+                        createButton (LetterKey s)
+                    createButton BackspaceKey
                 ]
             ]
         ]
