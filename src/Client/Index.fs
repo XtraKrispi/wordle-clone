@@ -70,13 +70,61 @@ let viewGrid word guesses =
 
     Html.div [ prop.className "flex flex-col gap-2"; prop.children combinedList ]
 
+type KeyType = LetterKey of char | EnterKey | BackspaceKey
+
+let viewKeyboard =
+    let createButton (s: KeyType) =
+        let baseClass = "h-20 bg-gray-400 rounded-md text-white font-bold uppercase"
+        match s with
+        | LetterKey c -> Html.button [
+                                    prop.className $"w-16 text-2xl {baseClass}" 
+                                    prop.text (string c)
+                                ]
+
+        Html.button [
+            prop.className "w-16 h-20 bg-gray-400 rounded-md text-white text-2xl font-bold uppercase"
+            prop.text s
+        ]
+
+    let firstRow = "qwertyuiop"
+    let secondRow = "asdfghjkl"
+    let thirdRow = "zxcvbnm"
+
+    Html.div [
+        prop.className "flex flex-col gap-2"
+        prop.children [
+            Html.div [
+                prop.className "flex justify-center gap-2"
+                firstRow |> Seq.map (string >> createButton) |> prop.children
+            ]
+            Html.div [
+                prop.className "flex justify-center gap-2"
+                secondRow |> Seq.map (string >> createButton) |> prop.children
+            ]
+            Html.div [
+                prop.className "flex justify-center gap-2"
+                prop.children [
+                    createButton "Enter"
+                    for s in thirdRow do
+                        createButton (string s)
+                    createButton "Back"
+                ]
+            ]
+        ]
+    ]
+
 let view model dispatch =
     match model.word with
     | Loading _ -> Html.div [ prop.text "Loading..." ]
     | Loaded(Ok word) ->
         Html.div [
             prop.className "w-screen h-screen flex items-center justify-center"
-            prop.children [ Html.div [ prop.children [ viewGrid word model.guesses ] ] ]
+            prop.children [
+                Html.div [
+                    prop.className "flex flex-col items-center gap-2"
+                    prop.children [ viewGrid word model.guesses; viewKeyboard ]
+                ]
+            ]
         ]
     | Loaded(Error _) -> Html.div [ prop.text "Error loading word" ]
     | NotStarted -> Html.div [ prop.text "Not started" ]
