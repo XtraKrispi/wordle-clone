@@ -24,6 +24,7 @@ type Msg =
     | WordLoaded of string
     | WordFailed
     | LetterGuessed of char
+    | LetterDeleted
     | CommitGuess
 
 let todosApi = Api.makeProxy<IWordleApi> ()
@@ -48,6 +49,17 @@ let update msg model =
                 Guessing {|
                     guesses = st.guesses
                     currentGuess = $"{st.currentGuess}{c}"
+                |}
+            | _ -> model.gameState
+
+        { model with gameState = newGameState }, Cmd.none
+    | LetterDeleted ->
+        let newGameState =
+            match model.gameState with
+            | Guessing st when st.currentGuess.Length > 0 ->
+                Guessing {|
+                    guesses = st.guesses
+                    currentGuess = $"{st.currentGuess[0..(st.currentGuess.Length - 2)]}"
                 |}
             | _ -> model.gameState
 
@@ -127,6 +139,7 @@ let viewKeyboard dispatch =
         | EnterKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "Enter" ]
         | BackspaceKey ->
             Html.button [
+                prop.onClick (fun _ -> dispatch LetterDeleted)
                 prop.className $"w-24 text-xl {baseClass} flex justify-center items-center"
                 prop.children [
                     Svg.svg [
