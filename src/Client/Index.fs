@@ -6,14 +6,13 @@ open Shared
 
 
 
-type GameState = 
-    | Guessing of {|
-        guesses: string list
-        currentGuess: string
-        |} 
-    | GameOver of {|
-        guesses: string list
+type GameState =
+    | Guessing of
+        {|
+            guesses: string list
+            currentGuess: string
         |}
+    | GameOver of {| guesses: string list |}
 
 type Model = {
     word: RemoteData<Result<string, unit>>
@@ -32,10 +31,7 @@ let todosApi = Api.makeProxy<IWordleApi> ()
 let init () : Model * Cmd<Msg> =
     {
         word = Loaded(Ok "hello")
-        gameState = Guessing {|
-            guesses = [ ]
-            currentGuess = ""
-        |}
+        gameState = Guessing {| guesses = []; currentGuess = "" |}
     },
     // Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
     Cmd.none
@@ -45,14 +41,16 @@ let update msg model =
     | NoOp -> model, Cmd.none
     | WordLoaded word -> { model with word = Loaded(Ok word) }, Cmd.none
     | WordFailed -> { model with word = Loaded(Error()) }, Cmd.none
-    | LetterGuessed c -> 
-        let newGameState = match model.gameState with
-                                | Guessing st when st.currentGuess.Length < 5 ->
-                                    Guessing {|
-                                        guesses = st.guesses
-                                        currentGuess = $"{st.currentGuess}{c}"
-                                    |}
-                                | _ -> model.gameState
+    | LetterGuessed c ->
+        let newGameState =
+            match model.gameState with
+            | Guessing st when st.currentGuess.Length < 5 ->
+                Guessing {|
+                    guesses = st.guesses
+                    currentGuess = $"{st.currentGuess}{c}"
+                |}
+            | _ -> model.gameState
+
         { model with gameState = newGameState }, Cmd.none
     | CommitGuess -> model, Cmd.none
 
@@ -91,24 +89,22 @@ let viewGrid word gameState =
     // Pad the guess list with None values to ensure it has exactly numGuesses elements
     let combinedList =
         match gameState with
-        | Guessing st -> 
-            [
-                for g in st.guesses do
-                    viewGuess true word g
-                
-                viewGuess false word (sprintf "%-5s" st.currentGuess )
+        | Guessing st -> [
+            for g in st.guesses do
+                viewGuess true word g
 
-                for i in { 1..(max (numGuesses - List.length st.guesses - 1) 0) } do
-                    Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ]
-            ]
-            // List.map Some st.guesses
-            // @ List.replicate (max (numGuesses - List.length st.guesses) 0) None
-            // |> List.map (fun x ->
-            //     match x with
-            //     | Some guess -> viewGuess word guess
-            //     | None -> Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ])
-        | GameOver st -> 
-            []
+            viewGuess false word (sprintf "%-5s" st.currentGuess)
+
+            for i in { 1 .. (max (numGuesses - List.length st.guesses - 1) 0) } do
+                Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ]
+          ]
+        // List.map Some st.guesses
+        // @ List.replicate (max (numGuesses - List.length st.guesses) 0) None
+        // |> List.map (fun x ->
+        //     match x with
+        //     | Some guess -> viewGuess word guess
+        //     | None -> Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ])
+        | GameOver st -> []
 
     Html.div [ prop.className "flex flex-col gap-2"; prop.children combinedList ]
 
@@ -122,7 +118,12 @@ let viewKeyboard dispatch =
         let baseClass = "h-20 bg-gray-400 rounded-md text-white font-bold uppercase"
 
         match k with
-        | LetterKey c -> Html.button [ prop.onClick (fun _ -> dispatch (LetterGuessed c)); prop.className $"w-16 text-2xl {baseClass}"; prop.text (string c) ]
+        | LetterKey c ->
+            Html.button [
+                prop.onClick (fun _ -> dispatch (LetterGuessed c))
+                prop.className $"w-16 text-2xl {baseClass}"
+                prop.text (string c)
+            ]
         | EnterKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "Enter" ]
         | BackspaceKey ->
             Html.button [
