@@ -4,22 +4,38 @@ open Elmish
 open SAFE
 open Shared
 
+
+
+type GameState = 
+    | Guessing of {|
+        guesses: string list
+        currentGuess: string
+        |} 
+    | GameOver of {|
+        guesses: string list
+        |}
+
 type Model = {
     word: RemoteData<Result<string, unit>>
-    guesses: string list
+    gameState: GameState
 }
 
 type Msg =
     | NoOp
     | WordLoaded of string
     | WordFailed
+    | LetterGuessed of char
+    | CommitGuess
 
 let todosApi = Api.makeProxy<IWordleApi> ()
 
 let init () : Model * Cmd<Msg> =
     {
         word = Loaded(Ok "hello")
-        guesses = [ "apple"; "helno"; "train" ]
+        gameState = Guessing {|
+            guesses = [ ]
+            currentGuess = ""
+        |}
     },
     // Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
     Cmd.none
@@ -29,22 +45,35 @@ let update msg model =
     | NoOp -> model, Cmd.none
     | WordLoaded word -> { model with word = Loaded(Ok word) }, Cmd.none
     | WordFailed -> { model with word = Loaded(Error()) }, Cmd.none
+    | LetterGuessed c -> 
+        let newGameState = match model.gameState with
+                                | Guessing st when st.currentGuess.Length < 5 ->
+                                    Guessing {|
+                                        guesses = st.guesses
+                                        currentGuess = $"{st.currentGuess}{c}"
+                                    |}
+                                | _ -> model.gameState
+        { model with gameState = newGameState }, Cmd.none
+    | CommitGuess -> model, Cmd.none
 
 open Feliz
 
-let viewGuess word guess =
+let viewGuess renderColors word guess =
     let boxes =
         Logic.EvaluateGuess word guess
         |> List.map (fun l ->
             let className =
-                match l.result with
-                | NotInWord -> "bg-zinc-500"
-                | InWrongPosition -> "bg-yellow-500"
-                | CorrectPosition -> "bg-green-500"
+                if renderColors then
+                    match l.result with
+                    | NotInWord -> "bg-zinc-500 text-white"
+                    | InWrongPosition -> "bg-yellow-500 text-white"
+                    | CorrectPosition -> "bg-green-500 text-white"
+                else
+                    "border-2 border-gray-400"
 
             Html.div [
                 prop.className (
-                    "w-20 h-20 flex items-center justify-center font-extrabold text-4xl text-white uppercase "
+                    "w-20 h-20 flex items-center justify-center font-extrabold text-4xl uppercase "
                     + className
                 )
                 prop.text (string l.character)
@@ -52,7 +81,7 @@ let viewGuess word guess =
 
     Html.div [ prop.className "flex gap-2"; prop.children boxes ]
 
-let viewGrid word guesses =
+let viewGrid word gameState =
     let numGuesses = 6
 
     let emptyBoxes =
@@ -61,12 +90,25 @@ let viewGrid word guesses =
 
     // Pad the guess list with None values to ensure it has exactly numGuesses elements
     let combinedList =
-        List.map Some guesses
-        @ List.replicate (max (numGuesses - List.length guesses) 0) None
-        |> List.map (fun x ->
-            match x with
-            | Some guess -> viewGuess word guess
-            | None -> Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ])
+        match gameState with
+        | Guessing st -> 
+            [
+                for g in st.guesses do
+                    viewGuess true word g
+                
+                viewGuess false word (sprintf "%-5s" st.currentGuess )
+
+                for i in { 1..(max (numGuesses - List.length st.guesses - 1) 0) } do
+                    Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ]
+            ]
+            // List.map Some st.guesses
+            // @ List.replicate (max (numGuesses - List.length st.guesses) 0) None
+            // |> List.map (fun x ->
+            //     match x with
+            //     | Some guess -> viewGuess word guess
+            //     | None -> Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ])
+        | GameOver st -> 
+            []
 
     Html.div [ prop.className "flex flex-col gap-2"; prop.children combinedList ]
 
@@ -75,12 +117,12 @@ type KeyType =
     | EnterKey
     | BackspaceKey
 
-let viewKeyboard =
+let viewKeyboard dispatch =
     let createButton (k: KeyType) =
         let baseClass = "h-20 bg-gray-400 rounded-md text-white font-bold uppercase"
 
         match k with
-        | LetterKey c -> Html.button [ prop.className $"w-16 text-2xl {baseClass}"; prop.text (string c) ]
+        | LetterKey c -> Html.button [ prop.onClick (fun _ -> dispatch (LetterGuessed c)); prop.className $"w-16 text-2xl {baseClass}"; prop.text (string c) ]
         | EnterKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "Enter" ]
         | BackspaceKey ->
             Html.button [
@@ -140,7 +182,7 @@ let view model dispatch =
             prop.children [
                 Html.div [
                     prop.className "flex flex-col items-center gap-48"
-                    prop.children [ viewGrid word model.guesses; viewKeyboard ]
+                    prop.children [ viewGrid word model.gameState; viewKeyboard dispatch ]
                 ]
             ]
         ]
