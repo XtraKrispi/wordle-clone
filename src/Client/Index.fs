@@ -31,11 +31,10 @@ let todosApi = Api.makeProxy<IWordleApi> ()
 
 let init () : Model * Cmd<Msg> =
     {
-        word = Loaded(Ok "hello")
+        word = Loading None
         gameState = Guessing {| guesses = []; currentGuess = "" |}
     },
-    // Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
-    Cmd.none
+    Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
 
 let update msg model =
     match msg with
@@ -59,12 +58,29 @@ let update msg model =
             | Guessing st when st.currentGuess.Length > 0 ->
                 Guessing {|
                     guesses = st.guesses
-                    currentGuess = $"{st.currentGuess[0..(st.currentGuess.Length - 2)]}"
+                    currentGuess = $"{st.currentGuess[0 .. (st.currentGuess.Length - 2)]}"
                 |}
             | _ -> model.gameState
 
         { model with gameState = newGameState }, Cmd.none
-    | CommitGuess -> model, Cmd.none
+    | CommitGuess ->
+        let newGameState =
+            match model.gameState with
+            | Guessing st ->
+                let newGuesses = st.guesses @ [ st.currentGuess ]
+
+                if List.length st.guesses = 5 || Loaded(Ok st.currentGuess) = model.word then
+                    GameOver {| guesses = newGuesses |}
+
+                else
+                    Guessing {|
+                        guesses = newGuesses
+                        currentGuess = ""
+                    |}
+            | _ -> model.gameState
+
+
+        { model with gameState = newGameState }, Cmd.none
 
 open Feliz
 
@@ -109,14 +125,21 @@ let viewGrid word gameState =
 
             for i in { 1 .. (max (numGuesses - List.length st.guesses - 1) 0) } do
                 Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ]
-            ]
+          ]
         // List.map Some st.guesses
         // @ List.replicate (max (numGuesses - List.length st.guesses) 0) None
         // |> List.map (fun x ->
         //     match x with
         //     | Some guess -> viewGuess word guess
         //     | None -> Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ])
-        | GameOver st -> []
+        | GameOver st -> [
+            for g in st.guesses do
+                viewGuess true word g
+
+
+            for i in { 1 .. (max (numGuesses - List.length st.guesses) 0) } do
+                Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ]
+          ]
 
     Html.div [ prop.className "flex flex-col gap-2"; prop.children combinedList ]
 
@@ -136,7 +159,12 @@ let viewKeyboard dispatch =
                 prop.className $"w-16 text-2xl {baseClass}"
                 prop.text (string c)
             ]
-        | EnterKey -> Html.button [ prop.className $"w-24 text-xl {baseClass}"; prop.text "Enter" ]
+        | EnterKey ->
+            Html.button [
+                prop.className $"w-24 text-xl {baseClass}"
+                prop.text "Enter"
+                prop.onClick (fun _ -> dispatch CommitGuess)
+            ]
         | BackspaceKey ->
             Html.button [
                 prop.onClick (fun _ -> dispatch LetterDeleted)
@@ -187,18 +215,19 @@ let viewKeyboard dispatch =
         ]
     ]
 
+let viewGame word model dispatch =
+    Html.div [
+        prop.className "flex flex-col items-center gap-48"
+        prop.children [ viewGrid word model.gameState; viewKeyboard dispatch ]
+    ]
+
 let view model dispatch =
     match model.word with
     | Loading _ -> Html.div [ prop.text "Loading..." ]
     | Loaded(Ok word) ->
         Html.div [
             prop.className "w-screen h-screen flex items-center justify-center"
-            prop.children [
-                Html.div [
-                    prop.className "flex flex-col items-center gap-48"
-                    prop.children [ viewGrid word model.gameState; viewKeyboard dispatch ]
-                ]
-            ]
+            prop.children [ viewGame word model dispatch ]
         ]
     | Loaded(Error _) -> Html.div [ prop.text "Error loading word" ]
     | NotStarted -> Html.div [ prop.text "Not started" ]
