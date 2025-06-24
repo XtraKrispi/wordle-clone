@@ -3,7 +3,7 @@ module Index
 open Elmish
 open SAFE
 open Shared
-
+open Fable.Core.JsInterop
 
 
 type GameState =
@@ -83,6 +83,8 @@ let update msg model =
         { model with gameState = newGameState }, Cmd.none
 
 open Feliz
+open Browser
+open System
 
 let viewGuess renderColors word guess =
     let boxes =
@@ -231,3 +233,25 @@ let view model dispatch =
         ]
     | Loaded(Error _) -> Html.div [ prop.text "Error loading word" ]
     | NotStarted -> Html.div [ prop.text "Not started" ]
+
+let subscription model =
+    let keyDownHandler dispatch =
+        let handler e =
+            match e?keyCode with
+            | 13 -> dispatch CommitGuess
+            | 8 -> dispatch LetterDeleted
+            | k when k >= 97 && k <= 122 || k >= 65 && k <= 90 -> dispatch (LetterGuessed(char k))
+            | _ -> ()
+
+        document.addEventListener ("keydown", handler)
+
+        { new IDisposable with
+            member _.Dispose() =
+                document.removeEventListener ("keydown", handler)
+        }
+
+    let subscribe model = [ [ "keyDown" ], keyDownHandler ]
+
+    match model.gameState with
+    | Guessing _ -> subscribe model
+    | GameOver _ -> Sub.none
