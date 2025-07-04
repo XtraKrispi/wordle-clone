@@ -9,14 +9,17 @@ open Fable.Core.JsInterop
 type GameState =
     | Guessing of
         {|
+            word: string
             guesses: string list
             currentGuess: string
         |}
-    | GameOver of {| guesses: string list |}
+    | GameOver of {| 
+            word: string
+            guesses: string list 
+        |}
 
 type Model = {
-    word: RemoteData<Result<string, unit>>
-    gameState: GameState
+    gameState: RemoteData<Result<GameState, unit>>
 }
 
 type Msg =
@@ -31,52 +34,54 @@ let todosApi = Api.makeProxy<IWordleApi> ()
 
 let init () : Model * Cmd<Msg> =
     {
-        word = Loading None
-        gameState = Guessing {| guesses = []; currentGuess = "" |}
+        gameState = Loading None
     },
     Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
 
 let update msg model =
     match msg with
     | NoOp -> model, Cmd.none
-    | WordLoaded word -> { model with word = Loaded(Ok word) }, Cmd.none
-    | WordFailed -> { model with word = Loaded(Error()) }, Cmd.none
+    | WordLoaded word -> { model with gameState = Loaded(Ok (Guessing  {| word = word; guesses = []; currentGuess = "" |})) }, Cmd.none
+    | WordFailed -> { model with gameState = Loaded(Error()) }, Cmd.none
     | LetterGuessed c ->
         let newGameState =
             match model.gameState with
-            | Guessing st when st.currentGuess.Length < 5 ->
-                Guessing {|
+            | Loaded(Ok (Guessing st)) when st.currentGuess.Length < 5 ->
+                Loaded(Ok (Guessing {|
+                    word = st.word
                     guesses = st.guesses
                     currentGuess = $"{st.currentGuess}{c}"
-                |}
+                |}))
             | _ -> model.gameState
 
         { model with gameState = newGameState }, Cmd.none
     | LetterDeleted ->
         let newGameState =
             match model.gameState with
-            | Guessing st when st.currentGuess.Length > 0 ->
-                Guessing {|
+            | Loaded(Ok (Guessing st)) when st.currentGuess.Length > 0 ->
+                Loaded(Ok (Guessing {|
+                    word = st.word
                     guesses = st.guesses
                     currentGuess = $"{st.currentGuess[0 .. (st.currentGuess.Length - 2)]}"
-                |}
+                |}))
             | _ -> model.gameState
 
         { model with gameState = newGameState }, Cmd.none
     | CommitGuess ->
         let newGameState =
             match model.gameState with
-            | Guessing st ->
+            | Loaded(Ok (Guessing st)) when st.currentGuess.Length = 5 ->
                 let newGuesses = st.guesses @ [ st.currentGuess ]
 
-                if List.length st.guesses = 5 || Loaded(Ok st.currentGuess) = model.word then
-                    GameOver {| guesses = newGuesses |}
+                if List.length st.guesses = 5 || st.currentGuess = st.word then
+                    Loaded(Ok (GameOver {| word = st.word; guesses = newGuesses |}))
 
                 else
-                    Guessing {|
+                    Loaded(Ok (Guessing {|
+                        word = st.word
                         guesses = newGuesses
                         currentGuess = ""
-                    |}
+                    |}))
             | _ -> model.gameState
 
 
@@ -109,7 +114,7 @@ let viewGuess renderColors word guess =
 
     Html.div [ prop.className "flex gap-2"; prop.children boxes ]
 
-let viewGrid word gameState =
+let viewGrid gameState =
     let numGuesses = 6
 
     let emptyBoxes =
@@ -121,9 +126,9 @@ let viewGrid word gameState =
         match gameState with
         | Guessing st -> [
             for g in st.guesses do
-                viewGuess true word g
+                viewGuess true st.word g
 
-            viewGuess false word (sprintf "%-5s" st.currentGuess)
+            viewGuess false st.word (sprintf "%-5s" st.currentGuess)
 
             for i in { 1 .. (max (numGuesses - List.length st.guesses - 1) 0) } do
                 Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ]
@@ -136,7 +141,7 @@ let viewGrid word gameState =
         //     | None -> Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ])
         | GameOver st -> [
             for g in st.guesses do
-                viewGuess true word g
+                viewGuess true st.word g
 
 
             for i in { 1 .. (max (numGuesses - List.length st.guesses) 0) } do
@@ -216,20 +221,21 @@ let viewKeyboard dispatch =
             ]
         ]
     ]
+    
 
-let viewGame word model dispatch =
+let viewGame gameState dispatch =
     Html.div [
         prop.className "flex flex-col items-center gap-48"
-        prop.children [ viewGrid word model.gameState; viewKeyboard dispatch ]
+        prop.children [ viewGrid gameState; viewKeyboard dispatch ]
     ]
 
 let view model dispatch =
-    match model.word with
+    match model.gameState with
     | Loading _ -> Html.div [ prop.text "Loading..." ]
-    | Loaded(Ok word) ->
+    | Loaded(Ok st) ->
         Html.div [
             prop.className "w-screen h-screen flex items-center justify-center"
-            prop.children [ viewGame word model dispatch ]
+            prop.children [ viewGame st dispatch ]
         ]
     | Loaded(Error _) -> Html.div [ prop.text "Error loading word" ]
     | NotStarted -> Html.div [ prop.text "Not started" ]
@@ -253,5 +259,5 @@ let subscription model =
     let subscribe model = [ [ "keyDown" ], keyDownHandler ]
 
     match model.gameState with
-    | Guessing _ -> subscribe model
-    | GameOver _ -> Sub.none
+    | Loaded(Ok (Guessing _)) -> subscribe model
+    | _ -> Sub.none
