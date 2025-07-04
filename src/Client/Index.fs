@@ -13,10 +13,7 @@ type GameState =
             guesses: string list
             currentGuess: string
         |}
-    | GameOver of {| 
-            word: string
-            guesses: string list 
-        |}
+    | GameOver of {| word: string; guesses: string list |}
 
 type Model = {
     gameState: RemoteData<Result<GameState, unit>>
@@ -33,55 +30,90 @@ type Msg =
 let todosApi = Api.makeProxy<IWordleApi> ()
 
 let init () : Model * Cmd<Msg> =
-    {
-        gameState = Loading None
-    },
-    Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
+    { gameState = Loading None }, Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
 
 let update msg model =
     match msg with
     | NoOp -> model, Cmd.none
-    | WordLoaded word -> { model with gameState = Loaded(Ok (Guessing  {| word = word; guesses = []; currentGuess = "" |})) }, Cmd.none
-    | WordFailed -> { model with gameState = Loaded(Error()) }, Cmd.none
+    | WordLoaded word ->
+        {
+            model with
+                gameState =
+                    Loaded(
+                        Ok(
+                            Guessing {|
+                                word = word
+                                guesses = []
+                                currentGuess = ""
+                            |}
+                        )
+                    )
+        },
+        Cmd.none
+    | WordFailed ->
+        {
+            model with
+                gameState = Loaded(Error())
+        },
+        Cmd.none
     | LetterGuessed c ->
         let newGameState =
             match model.gameState with
-            | Loaded(Ok (Guessing st)) when st.currentGuess.Length < 5 ->
-                Loaded(Ok (Guessing {|
-                    word = st.word
-                    guesses = st.guesses
-                    currentGuess = $"{st.currentGuess}{c}"
-                |}))
+            | Loaded(Ok(Guessing st)) when st.currentGuess.Length < 5 ->
+                Loaded(
+                    Ok(
+                        Guessing {|
+                            word = st.word
+                            guesses = st.guesses
+                            currentGuess = $"{st.currentGuess}{c}"
+                        |}
+                    )
+                )
             | _ -> model.gameState
 
         { model with gameState = newGameState }, Cmd.none
     | LetterDeleted ->
         let newGameState =
             match model.gameState with
-            | Loaded(Ok (Guessing st)) when st.currentGuess.Length > 0 ->
-                Loaded(Ok (Guessing {|
-                    word = st.word
-                    guesses = st.guesses
-                    currentGuess = $"{st.currentGuess[0 .. (st.currentGuess.Length - 2)]}"
-                |}))
+            | Loaded(Ok(Guessing st)) when st.currentGuess.Length > 0 ->
+                Loaded(
+                    Ok(
+                        Guessing {|
+                            word = st.word
+                            guesses = st.guesses
+                            currentGuess = $"{st.currentGuess[0 .. (st.currentGuess.Length - 2)]}"
+                        |}
+                    )
+                )
             | _ -> model.gameState
 
         { model with gameState = newGameState }, Cmd.none
     | CommitGuess ->
         let newGameState =
             match model.gameState with
-            | Loaded(Ok (Guessing st)) when st.currentGuess.Length = 5 ->
+            | Loaded(Ok(Guessing st)) when st.currentGuess.Length = 5 ->
                 let newGuesses = st.guesses @ [ st.currentGuess ]
 
-                if List.length st.guesses = 5 || st.currentGuess = st.word then
-                    Loaded(Ok (GameOver {| word = st.word; guesses = newGuesses |}))
+                if List.length st.guesses = 5 || st.currentGuess.ToLower() = st.word.ToLower() then
+                    Loaded(
+                        Ok(
+                            GameOver {|
+                                word = st.word
+                                guesses = newGuesses
+                            |}
+                        )
+                    )
 
                 else
-                    Loaded(Ok (Guessing {|
-                        word = st.word
-                        guesses = newGuesses
-                        currentGuess = ""
-                    |}))
+                    Loaded(
+                        Ok(
+                            Guessing {|
+                                word = st.word
+                                guesses = newGuesses
+                                currentGuess = ""
+                            |}
+                        )
+                    )
             | _ -> model.gameState
 
 
@@ -221,7 +253,7 @@ let viewKeyboard dispatch =
             ]
         ]
     ]
-    
+
 
 let viewGame gameState dispatch =
     Html.div [
@@ -259,5 +291,5 @@ let subscription model =
     let subscribe model = [ [ "keyDown" ], keyDownHandler ]
 
     match model.gameState with
-    | Loaded(Ok (Guessing _)) -> subscribe model
+    | Loaded(Ok(Guessing _)) -> subscribe model
     | _ -> Sub.none

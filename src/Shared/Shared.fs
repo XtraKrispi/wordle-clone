@@ -56,11 +56,11 @@ module Logic =
         |> List.append zippedList
         |> List.sortBy fst
 
-    let EvaluateGuess actual guess =
-        let actualCharToIndicesMap = mapCharsToIndices actual
-        let guessCharToIndicesMap = mapCharsToIndices guess
+    let EvaluateGuess (actual: string) (guess: string) =
+        let actualCharToIndicesMap = mapCharsToIndices (actual.ToLower())
+        let guessCharToIndicesMap = mapCharsToIndices (guess.ToLower())
 
-        guess
+        guess.ToLower()
         |> Seq.toList
         |> List.distinct
         |> List.map (fun l ->
