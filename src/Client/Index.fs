@@ -92,7 +92,7 @@ let update msg model =
         let newGameState =
             match model.gameState with
             | Loaded(Ok(Guessing st)) when st.currentGuess.Length = 5 ->
-                let newGuesses = st.guesses @ [ st.currentGuess ]
+                let newGuesses = st.guesses @ [ st.currentGuess.ToLower() ]
 
                 if List.length st.guesses = 5 || st.currentGuess.ToLower() = st.word.ToLower() then
                     Loaded(
@@ -254,11 +254,24 @@ let viewKeyboard dispatch =
         ]
     ]
 
+let viewResults =
+    function
+    | GameOver st when List.contains st.word st.guesses ->
+        Html.div [
+            prop.className "flex flex-col gap-2"
+            prop.children [
+                Html.text "You won!"
+                Html.button [ prop.className "border border-black rounded p-2"; prop.text "Share" ]
+            ]
+        ]
+    | GameOver st -> Html.div $"You lost. The word is: {st.word}"
+    | _ -> Html.div [ prop.className "invisible"; prop.text ";" ]
+
 
 let viewGame gameState dispatch =
     Html.div [
-        prop.className "flex flex-col items-center gap-48"
-        prop.children [ viewGrid gameState; viewKeyboard dispatch ]
+        prop.className "flex flex-col items-center gap-12"
+        prop.children [ viewGrid gameState; viewResults gameState; viewKeyboard dispatch ]
     ]
 
 let view model dispatch =

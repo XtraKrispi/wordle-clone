@@ -7,12 +7,13 @@ open System.IO
 
 
 let wordleApi ctx = {
-    getWord = fun () -> async {
-        let! words = File.ReadAllLinesAsync "wordle-La.txt" |> Async.AwaitTask
-        let random = System.Random()
-        let word = words.[random.Next(0, words.Length)]
-        return word
-    }
+    getWord =
+        fun () -> async {
+            let! words = File.ReadAllLinesAsync "wordle-La.txt" |> Async.AwaitTask
+            let random = System.Random()
+            let word = words.[random.Next(0, words.Length)]
+            return word.ToLower()
+        }
 }
 
 let webApp = Api.make wordleApi
