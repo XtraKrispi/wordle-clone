@@ -71,3 +71,19 @@ module Logic =
         |> List.concat
         |> List.sortBy (fun (_, _, index) -> index)
         |> List.map (fun (l, result, _) -> { character = l; result = result })
+
+
+    let GenerateShareOutput word guesses =
+        let mapLetterResultToEmoji =
+            function
+            | NotInWord -> "⬜️"
+            | InWrongPosition -> "🟨"
+            | CorrectPosition -> "🟩"
+
+        guesses
+        |> List.map (fun guess ->
+            guess
+            |> EvaluateGuess word
+            |> List.map (fun r -> mapLetterResultToEmoji r.result)
+            |> String.concat "")
+        |> String.concat "\n"

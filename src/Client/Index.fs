@@ -255,7 +255,7 @@ let viewResults =
         Html.div [
             prop.className "flex flex-col gap-2"
             prop.children [
-                Html.text "You won!"
+                Html.text $"You won! {Logic.GenerateShareOutput st.word st.guesses}"
                 Html.button [ prop.className "border border-black rounded p-2"; prop.text "Share" ]
             ]
         ]
