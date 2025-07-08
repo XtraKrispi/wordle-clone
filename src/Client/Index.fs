@@ -262,20 +262,24 @@ let viewKeyboard dispatch =
     ]
 
 let viewResults gameState dispatch =
+    let renderShareButton =
+        Html.button [
+            prop.className "border border-black rounded p-2"
+            prop.onClick (fun _ -> dispatch ShareResult)
+            prop.text "Share"
+        ]
+
     match gameState with
     | GameOver st when List.contains st.word st.guesses ->
         Html.div [
             prop.className "flex flex-col gap-2"
-            prop.children [
-                Html.text "You won!"
-                Html.button [
-                    prop.className "border border-black rounded p-2"
-                    prop.onClick (fun _ -> dispatch ShareResult)
-                    prop.text "Share"
-                ]
-            ]
+            prop.children [ Html.text "You won!"; renderShareButton ]
         ]
-    | GameOver st -> Html.div $"You lost. The word is: {st.word}"
+    | GameOver st ->
+        Html.div [
+            prop.className "flex flex-col gap-2"
+            prop.children [ Html.text $"You lost. The word is: {st.word}"; renderShareButton ]
+        ]
     | _ -> Html.div [ prop.className "invisible"; prop.text ";" ]
 
 
