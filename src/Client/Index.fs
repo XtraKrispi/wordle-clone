@@ -264,7 +264,7 @@ let viewKeyboard dispatch =
 let viewResults gameState dispatch =
     let renderShareButton =
         Html.button [
-            prop.className "border border-black rounded p-2"
+            prop.className "border border-black rounded p-2 hover:bg-slate-200"
             prop.onClick (fun _ -> dispatch ShareResult)
             prop.text "Share"
         ]
