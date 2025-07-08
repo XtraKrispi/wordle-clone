@@ -4,6 +4,7 @@ open Elmish
 open SAFE
 open Shared
 open Fable.Core.JsInterop
+open Fable.Core
 
 
 type GameState =
@@ -26,11 +27,15 @@ type Msg =
     | LetterGuessed of char
     | LetterDeleted
     | CommitGuess
+    | ShareResult
 
 let todosApi = Api.makeProxy<IWordleApi> ()
 
 let init () : Model * Cmd<Msg> =
     { gameState = Loading None }, Cmd.OfAsync.either todosApi.getWord () WordLoaded (fun _ -> WordFailed)
+
+[<Emit("navigator.clipboard.writeText($0);")>]
+let copyToClipboard (text: string) = jsNative
 
 let update msg model =
     match msg with
@@ -118,6 +123,13 @@ let update msg model =
 
 
         { model with gameState = newGameState }, Cmd.none
+    | ShareResult ->
+        match model.gameState with
+        | Loaded(Ok(GameOver st)) ->
+            copyToClipboard (Logic.GenerateShareOutput st.word st.guesses)
+            model, Cmd.none
+        | _ -> model, Cmd.none
+
 
 open Feliz
 open Browser
@@ -249,14 +261,18 @@ let viewKeyboard dispatch =
         ]
     ]
 
-let viewResults =
-    function
+let viewResults gameState dispatch =
+    match gameState with
     | GameOver st when List.contains st.word st.guesses ->
         Html.div [
             prop.className "flex flex-col gap-2"
             prop.children [
-                Html.text $"You won! {Logic.GenerateShareOutput st.word st.guesses}"
-                Html.button [ prop.className "border border-black rounded p-2"; prop.text "Share" ]
+                Html.text "You won!"
+                Html.button [
+                    prop.className "border border-black rounded p-2"
+                    prop.onClick (fun _ -> dispatch ShareResult)
+                    prop.text "Share"
+                ]
             ]
         ]
     | GameOver st -> Html.div $"You lost. The word is: {st.word}"
@@ -266,7 +282,7 @@ let viewResults =
 let viewGame gameState dispatch =
     Html.div [
         prop.className "flex flex-col items-center gap-12"
-        prop.children [ viewGrid gameState; viewResults gameState; viewKeyboard dispatch ]
+        prop.children [ viewGrid gameState; viewResults gameState dispatch; viewKeyboard dispatch ]
     ]
 
 let view model dispatch =
