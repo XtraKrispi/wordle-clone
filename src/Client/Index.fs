@@ -165,12 +165,7 @@ let viewGrid gameState =
             for i in { 1 .. (max (numGuesses - List.length st.guesses - 1) 0) } do
                 Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ]
           ]
-        // List.map Some st.guesses
-        // @ List.replicate (max (numGuesses - List.length st.guesses) 0) None
-        // |> List.map (fun x ->
-        //     match x with
-        //     | Some guess -> viewGuess word guess
-        //     | None -> Html.div [ prop.className "flex gap-2"; prop.children emptyBoxes ])
+
         | GameOver st -> [
             for g in st.guesses do
                 viewGuess true st.word g
